@@ -39,7 +39,7 @@ class YouTubeTools:
         return None
 
     @staticmethod
-    def get_video_data(url: str) -> dict:
+    def get_video_data(url: str, browser: Optional[str] = None) -> dict:
         """Function to get video data from a YouTube URL using yt-dlp."""
         if not url:
             raise HTTPException(status_code=400, detail="No URL provided")
@@ -52,6 +52,10 @@ class YouTubeTools:
                 'skip_download': True,
                 'format': 'best',
             }
+            
+            # Add cookies from browser if specified
+            if browser:
+                ydl_opts['cookiesfrombrowser'] = (browser, None, None, None)
             
             # Use yt-dlp to extract info
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -235,11 +239,12 @@ class YouTubeTools:
 class YouTubeRequest(BaseModel):
     url: str
     languages: Optional[List[str]] = None
+    browser: Optional[str] = None
 
 @app.post("/video-data")
 async def get_video_data(request: YouTubeRequest):
     """Endpoint to get video metadata"""
-    return YouTubeTools.get_video_data(request.url)
+    return YouTubeTools.get_video_data(request.url, request.browser)
 
 @app.post("/video-captions")
 async def get_video_captions(request: YouTubeRequest):
