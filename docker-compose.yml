@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  youtube-tools-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - HOST=0.0.0.0
+      # Uncomment and set these if you need proxy credentials
+      # - PROXY_USERNAME=your_username
+      # - PROXY_PASSWORD=your_password
+    restart: unless-stopped
+    volumes:
+      # For development: mount the code directory to enable hot-reloading
+      # Comment this out for production
+      - .:/app

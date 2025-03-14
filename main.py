@@ -91,14 +91,14 @@ class YouTubeTools:
         try:
             captions = None
             if languages:
-                ytt_api = YouTubeTranscriptApi(
-                    proxy_config=WebshareProxyConfig(
-                           proxy_username=os.getenv("PROXY_USERNAME"),
-                           proxy_password=os.getenv("PROXY_PASSWORD"),
-                    )
-                )
-                print(ytt_api , "ytt_api")
-                captions = ytt_api.get_transcript(video_id, languages=languages)
+                # ytt_api = YouTubeTranscriptApi(
+                #     proxy_config=WebshareProxyConfig(
+                #            proxy_username=os.getenv("PROXY_USERNAME"),
+                #            proxy_password=os.getenv("PROXY_PASSWORD"),
+                #     )
+                # )
+                # print(ytt_api , "ytt_api")
+                # captions = ytt_api.get_transcript(video_id, languages=languages)
                 captions = YouTubeTranscriptApi.get_transcript(video_id, languages=languages)
             else:
                 captions = YouTubeTranscriptApi.get_transcript(video_id)
