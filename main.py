@@ -1,8 +1,10 @@
 import json
 import os
+import requests
+from selectolax.parser import HTMLParser
 from urllib.parse import urlparse, parse_qs, urlencode
 from urllib.request import urlopen
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -151,6 +153,79 @@ async def get_video_captions(request: YouTubeRequest):
 async def get_video_timestamps(request: YouTubeRequest):
     """Endpoint to get video timestamps"""
     return YouTubeTools.get_video_timestamps(request.url, request.languages)
+
+class TelegramTools:
+    @staticmethod
+    def get_channel_posts(channel_names: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """Function to get posts from multiple Telegram channels."""
+        if not channel_names:
+            raise HTTPException(status_code=400, detail="No channel names provided")
+        
+        result = {}
+        
+        for channel_name in channel_names:
+            try:
+                url = f"https://t.me/s/{channel_name}"
+                response = requests.post(url)
+                
+                if response.status_code != 200:
+                    result[channel_name] = {"error": f"Failed to fetch channel: {response.status_code}"}
+                    continue
+                
+                posts = []
+                parser = HTMLParser(response.text)
+                
+                for message_bubble in parser.css('div.tgme_widget_message_bubble'):
+                    try:
+                        post_data = {}
+                        
+                        # Get text content if available
+                        text_element = message_bubble.css_first('div.tgme_widget_message_text')
+                        if text_element:
+                            post_data["text"] = text_element.text()
+                        
+                        # Get image if available
+                        image_element = message_bubble.css_first('.tgme_widget_message_photo_wrap')
+                        if image_element:
+                            style = image_element.attributes.get('style', '')
+                            url_start = style.find('url(')
+                            url_end = style.find(')', url_start)
+                            if url_start != -1 and url_end != -1:
+                                post_data["image_url"] = style[url_start + 5:url_end - 1]
+                        
+                        # Get video if available
+                        video_element = message_bubble.css_first('video')
+                        if video_element:
+                            post_data["video_url"] = video_element.attrs.get('src')
+                        
+                        # Get metadata
+                        date_element = message_bubble.css_first('a.tgme_widget_message_date')
+                        if date_element:
+                            post_data["post_id"] = date_element.attrs.get('href').replace(f'https://t.me/{channel_name}/', '')
+                            
+                        time_element = message_bubble.css_first('time')
+                        if time_element:
+                            post_data["datetime"] = time_element.attrs.get('datetime')
+                        
+                        posts.append(post_data)
+                    except Exception as e:
+                        # Skip posts that cause errors
+                        continue
+                
+                result[channel_name] = posts
+                
+            except Exception as e:
+                result[channel_name] = {"error": str(e)}
+        
+        return result
+
+class TelegramRequest(BaseModel):
+    channel_names: List[str]
+
+@app.post("/telegram-channel-posts")
+async def get_telegram_channel_posts(request: TelegramRequest):
+    """Endpoint to get posts from multiple Telegram channels"""
+    return TelegramTools.get_channel_posts(request.channel_names)
 
 if __name__ == "__main__":
     # Use environment variable for port, default to 8000 if not set
