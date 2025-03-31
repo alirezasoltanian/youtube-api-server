@@ -212,7 +212,8 @@ class TelegramTools:
                         # Skip posts that cause errors
                         continue
                 
-                result[channel_name] = posts
+                # معکوس کردن ترتیب پست‌ها قبل از ذخیره در نتیجه
+                result[channel_name] = posts[::-1]
                 
             except Exception as e:
                 result[channel_name] = {"error": str(e)}
